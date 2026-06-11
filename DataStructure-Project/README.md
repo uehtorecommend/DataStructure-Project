@@ -36,7 +36,6 @@ gcc -std=c11 -Wall -Wextra -pedantic "实验9-食物送递服务.c" -o "实验9-
 gcc -std=c11 -Wall -Wextra -pedantic "实验10-校园导游.c" -o "实验10-校园导游.exe"
 gcc -std=c11 -Wall -Wextra -pedantic "实验11-中国邮路问题.c" -o "实验11-中国邮路问题.exe"
 gcc -std=c11 -Wall -Wextra -pedantic "实验12-校园十大优秀青年评比.c" -o "实验12-校园十大优秀青年评比.exe"
-gcc -std=c11 -Wall -Wextra -pedantic "实验13-教学计划编制重写版.c" -o "实验13-教学计划编制重写版.exe"
 ```
 
 多数程序带内置测试数据，编译后直接运行即可查看覆盖性测试结果。
