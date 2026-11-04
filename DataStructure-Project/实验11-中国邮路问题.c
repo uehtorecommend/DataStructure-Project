@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <limits.h>
 
 #define MAXV 12
-#define INF 100000000
+#define MAXE 40
+#define INF (LLONG_MAX / 4)
 
 typedef struct {
     int u;
@@ -12,32 +14,45 @@ typedef struct {
 typedef struct {
     int n;
     int m;
-    int graph[MAXV][MAXV];
-    Edge edges[40];
+    long long graph[MAXV][MAXV];
+    Edge edges[MAXE];
 } PostGraph;
 
 /* 函数功能：初始化邮路图。 */
-void initGraph(PostGraph *g, int n)
+int initGraph(PostGraph *g, int n)
 {
-    g->n = n;
+    g->n = 0;
     g->m = 0;
+    if (n < 1 || n > MAXV) {
+        return 0;
+    }
+    g->n = n;
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             g->graph[i][j] = (i == j) ? 0 : INF;
         }
     }
+    return 1;
 }
 
-/* 函数功能：添加无向街道。 */
-void addStreet(PostGraph *g, int u, int v, int w)
+/* 添加非负权无向街道；失败返回0，且不改变图。允许平行边和自环。 */
+int addStreet(PostGraph *g, int u, int v, int w)
 {
-    g->graph[u][v] = w;
-    g->graph[v][u] = w;
+    if (g->n < 1 || g->n > MAXV || g->m < 0 || g->m >= MAXE ||
+        u < 0 || u >= g->n || v < 0 || v >= g->n || w < 0) {
+        return 0;
+    }
+    /* 最短路径只需最轻的平行边；每条实际街道仍须单独计长、计度。 */
+    if (w < g->graph[u][v]) {
+        g->graph[u][v] = w;
+        g->graph[v][u] = w;
+    }
     g->edges[g->m++] = (Edge){u, v, w};
+    return 1;
 }
 
 /* 函数功能：Floyd算法求任意两点最短路径。 */
-void floyd(const PostGraph *g, int dist[][MAXV])
+void floyd(const PostGraph *g, long long dist[][MAXV])
 {
     for (int i = 0; i < g->n; ++i) {
         for (int j = 0; j < g->n; ++j) {
@@ -57,7 +72,7 @@ void floyd(const PostGraph *g, int dist[][MAXV])
 }
 
 /* 函数功能：递归求奇点最小完美匹配代价。 */
-int matchOdd(int odd[], int oddCount, int used[], int dist[][MAXV], int pair[][2], int temp[][2], int depth)
+long long matchOdd(int odd[], int oddCount, int used[], long long dist[][MAXV], int pair[][2], int temp[][2], int depth)
 {
     int first = -1;
     for (int i = 0; i < oddCount; ++i) {
@@ -74,7 +89,7 @@ int matchOdd(int odd[], int oddCount, int used[], int dist[][MAXV], int pair[][2
         return 0;
     }
 
-    int best = INF;
+    long long best = INF;
     used[first] = 1;
     for (int j = first + 1; j < oddCount; ++j) {
         if (!used[j]) {
@@ -82,8 +97,8 @@ int matchOdd(int odd[], int oddCount, int used[], int dist[][MAXV], int pair[][2
             temp[depth][0] = odd[first];
             temp[depth][1] = odd[j];
             int subPair[MAXV][2];
-            int subCost = matchOdd(odd, oddCount, used, dist, subPair, temp, depth + 1);
-            int cost = dist[odd[first]][odd[j]] + subCost;
+            long long subCost = matchOdd(odd, oddCount, used, dist, subPair, temp, depth + 1);
+            long long cost = dist[odd[first]][odd[j]] + subCost;
             if (cost < best) {
                 best = cost;
                 for (int k = 0; k < depth; ++k) {
@@ -104,17 +119,24 @@ int matchOdd(int odd[], int oddCount, int used[], int dist[][MAXV], int pair[][2
     return best;
 }
 
-/* 函数功能：求中国邮路问题的最短闭合投递路线长度。 */
-void solveChinesePostman(PostGraph *g, int postOffice)
+/* 输出并返回最短闭合投递长度；非法邮局或不可达街道返回-1。
+ * 仅计算长度及奇点配对，不生成逐街道行走序列。g须由上述接口构造。
+ */
+long long solveChinesePostman(const PostGraph *g, int postOffice)
 {
     int degree[MAXV] = {0};
     int odd[MAXV];
     int oddCount = 0;
-    int total = 0;
-    int dist[MAXV][MAXV];
+    long long total = 0;
+    long long dist[MAXV][MAXV];
     int used[MAXV] = {0};
     int pair[MAXV][2] = {{0}};
     int temp[MAXV][2] = {{0}};
+
+    if (g->n < 1 || g->n > MAXV || postOffice < 0 || postOffice >= g->n) {
+        printf("无解：图规模或邮局位置无效。\n");
+        return -1;
+    }
 
     for (int i = 0; i < g->m; ++i) {
         total += g->edges[i].w;
@@ -128,9 +150,16 @@ void solveChinesePostman(PostGraph *g, int postOffice)
     }
 
     floyd(g, dist);
+    /* 即使所有度数为偶数，街道也可能位于不连通的分量中。 */
+    for (int i = 0; i < g->n; ++i) {
+        if (degree[i] > 0 && dist[postOffice][i] == INF) {
+            printf("无解：存在从邮局不可达的街道。\n");
+            return -1;
+        }
+    }
 
     printf("邮局位置：%d\n", postOffice);
-    printf("所有街道总长度：%d\n", total);
+    printf("所有街道总长度：%lld\n", total);
     printf("奇度顶点：");
     for (int i = 0; i < oddCount; ++i) {
         printf("%d ", odd[i]);
@@ -138,19 +167,20 @@ void solveChinesePostman(PostGraph *g, int postOffice)
     printf("\n");
 
     if (oddCount == 0) {
-        printf("该辖区已存在欧拉回路，最短投递路线长度为：%d\n", total);
-        return;
+        printf("该辖区已存在欧拉回路，最短投递路线长度为：%lld\n", total);
+        return total;
     }
 
-    int addCost = matchOdd(odd, oddCount, used, dist, pair, temp, 0);
+    long long addCost = matchOdd(odd, oddCount, used, dist, pair, temp, 0);
     printf("需要重复经过的最短补边配对：");
     for (int i = 0; i < oddCount / 2; ++i) {
-        printf("(%d,%d,补长%d) ", pair[i][0], pair[i][1], dist[pair[i][0]][pair[i][1]]);
+        printf("(%d,%d,补长%lld) ", pair[i][0], pair[i][1], dist[pair[i][0]][pair[i][1]]);
     }
     printf("\n");
-    printf("最短投递路线长度：%d\n", total + addCost);
+    printf("最短投递路线长度：%lld\n", total + addCost);
     printf("路线说明：从邮局%d出发，按欧拉化后的多重图经过每条街至少一次后回到邮局。\n",
            postOffice);
+    return total + addCost;
 }
 
 /* 函数功能：输出辖区街道。 */

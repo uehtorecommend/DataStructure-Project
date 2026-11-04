@@ -1,0 +1,24 @@
+name: Chinese postman regression
+on:
+  push:
+    paths:
+      - 'DataStructure-Project/实验11-中国邮路问题.c'
+      - 'tests/**'
+      - '.github/workflows/chinese-postman.yml'
+  pull_request:
+    paths:
+      - 'DataStructure-Project/实验11-中国邮路问题.c'
+      - 'tests/**'
+      - '.github/workflows/chinese-postman.yml'
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python3 tests/test_chinese_postman.py
+      - run: python3 tests/test_chinese_postman.py --sanitize
