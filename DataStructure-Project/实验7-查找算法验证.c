@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 #define HASH_SIZE 13
-#define EMPTY_KEY -1
 
 typedef struct BSTNode {
     int key;
@@ -12,6 +11,7 @@ typedef struct BSTNode {
 
 typedef struct {
     int data[HASH_SIZE];
+    int occupied[HASH_SIZE]; /* 空槽状态独立于关键字，支持所有 int 值。 */
 } HashTable;
 
 /* 函数功能：顺序查找，返回元素下标，失败返回-1。 */
@@ -113,24 +113,27 @@ void destroyBST(BSTNode *root)
 void initHashTable(HashTable *table)
 {
     for (int i = 0; i < HASH_SIZE; ++i) {
-        table->data[i] = EMPTY_KEY;
+        table->data[i] = 0;
+        table->occupied[i] = 0;
     }
 }
 
-/* 函数功能：哈希函数。 */
+/* 函数功能：将任意 int 关键字映射到 [0, HASH_SIZE)，不对 INT_MIN 取反。 */
 int hash(int key)
 {
-    return key % HASH_SIZE;
+    int address = key % HASH_SIZE;
+    return address < 0 ? address + HASH_SIZE : address;
 }
 
-/* 函数功能：用线性探测法插入哈希表。 */
+/* 函数功能：线性探测插入；重复键返回原位置，满表新键返回-1。 */
 int insertHash(HashTable *table, int key)
 {
     int address = hash(key);
     for (int i = 0; i < HASH_SIZE; ++i) {
         int pos = (address + i) % HASH_SIZE;
-        if (table->data[pos] == EMPTY_KEY || table->data[pos] == key) {
+        if (!table->occupied[pos] || table->data[pos] == key) {
             table->data[pos] = key;
+            table->occupied[pos] = 1;
             return pos;
         }
     }
@@ -145,11 +148,11 @@ int searchHash(const HashTable *table, int key, int *compareCount)
     for (int i = 0; i < HASH_SIZE; ++i) {
         int pos = (address + i) % HASH_SIZE;
         ++(*compareCount);
+        if (!table->occupied[pos]) {
+            return -1;
+        }
         if (table->data[pos] == key) {
             return pos;
-        }
-        if (table->data[pos] == EMPTY_KEY) {
-            return -1;
         }
     }
     return -1;
@@ -164,7 +167,7 @@ void printHashTable(const HashTable *table)
     }
     printf("\n哈希表数据: ");
     for (int i = 0; i < HASH_SIZE; ++i) {
-        if (table->data[i] == EMPTY_KEY) {
+        if (!table->occupied[i]) {
             printf("%3s", "--");
         } else {
             printf("%3d", table->data[i]);
