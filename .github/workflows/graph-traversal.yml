@@ -1,0 +1,44 @@
+name: Graph traversal regression
+
+on:
+  push:
+    paths:
+      - 'DataStructure-Project/实验6-图的存储与遍历.c'
+      - 'tests/test_graph_traversal.py'
+      - 'tests/graph_traversal_driver.c'
+      - 'tests/fixtures/graph_traversal_demo.txt'
+      - '.github/workflows/graph-traversal.yml'
+  pull_request:
+    paths:
+      - 'DataStructure-Project/实验6-图的存储与遍历.c'
+      - 'tests/test_graph_traversal.py'
+      - 'tests/graph_traversal_driver.c'
+      - 'tests/fixtures/graph_traversal_demo.txt'
+      - '.github/workflows/graph-traversal.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    name: Graph traversal (${{ matrix.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [normal, sanitize]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Run graph traversal regression tests
+        if: matrix.mode == 'normal'
+        run: python3 tests/test_graph_traversal.py -v
+      - name: Run graph traversal tests with ASan and UBSan
+        if: matrix.mode == 'sanitize'
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: python3 tests/test_graph_traversal.py --sanitize -v

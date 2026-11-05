@@ -131,7 +131,8 @@ int firstAdjVexMatrix(const MGraph *g, int i)
         return -1;
     }
     for (int j = 0; j < g->vexnum; ++j) {
-        if (g->arcs[i][j] != 0 && g->arcs[i][j] < INF) {
+        /* 对角线的初始0不表示边；非对角线允许合法的零权边。 */
+        if (i != j && g->arcs[i][j] < INF) {
             return j;
         }
     }
@@ -145,7 +146,8 @@ int nextAdjVexMatrix(const MGraph *g, int i, int j)
         return -1;
     }
     for (int k = j + 1; k < g->vexnum; ++k) {
-        if (g->arcs[i][k] != 0 && g->arcs[i][k] < INF) {
+        /* 按顶点下标排除对角线，不按权值排除零权边。 */
+        if (i != k && g->arcs[i][k] < INF) {
             return k;
         }
     }

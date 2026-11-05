@@ -1,0 +1,26 @@
+邻接矩阵：
+          A    B    C    D    E    F
+    A     0    5    2  INF  INF  INF
+    B     5    0  INF    7  INF  INF
+    C     2  INF    0    4    8  INF
+    D   INF    7    4    0  INF    3
+    E   INF  INF    8  INF    0    6
+    F   INF  INF  INF    3    6    0
+
+邻接表：
+A: -> C(2) -> B(5)
+B: -> D(7) -> A(5)
+C: -> E(8) -> D(4) -> A(2)
+D: -> F(3) -> C(4) -> B(7)
+E: -> F(6) -> C(8)
+F: -> E(6) -> D(3)
+
+顶点D在邻接矩阵中的位置：3
+顶点Z在邻接表中的位置：-1
+邻接矩阵：A的第一个邻接点=B，下一个邻接点=C
+邻接表：D的第一个邻接点=F，下一个邻接点=C
+
+邻接矩阵DFS：A B D C E F 
+邻接矩阵BFS：A B C D E F 
+邻接表DFS：A C E F D B 
+邻接表BFS：A C B E D F 
