@@ -26,15 +26,18 @@ class CampusRoutesTest(unittest.TestCase):
         cls.binary = str(Path(cls.temp.name) / 'campus_routes')
         flags = ['-std=c11', '-Wall', '-Wextra', '-Werror', '-pedantic']
         if SANITIZE:
-            flags += ['-fsanitize=address,undefined', '-fno-omit-frame-pointer', '-g', '-no-pie']
+            flags += ['-fsanitize=address,undefined', '-fno-sanitize-recover=all',
+                      '-fno-omit-frame-pointer', '-g', '-no-pie']
         subprocess.run(shlex.split(os.environ.get('CC', 'cc')) + flags +
                        [str(ROOT / 'tests/campus_routes_driver.c'), '-o', cls.binary], check=True)
 
     def query(self, edges=(), start=0, target=3):
         data = f'{len(edges)} {start} {target}\n'
         data += ''.join(f'{a} {b} {w}\n' for a, b, w in edges)
-        return subprocess.run([self.binary], input=data, text=True, encoding='utf-8',
-                              capture_output=True, check=True).stdout
+        result = subprocess.run([self.binary], input=data, text=True, encoding='utf-8',
+                                capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result.stdout
 
     def route(self, start, target, path, distance):
         return (f'{NAMES[start]} 到 {NAMES[target]} 的最佳路线：' +
@@ -86,13 +89,32 @@ class CampusRoutesTest(unittest.TestCase):
         self.assertEqual(self.query([(0, 1, INF - 2), (1, 3, 1)]),
                          self.route(0, 3, [0, 1, 3], INF - 1))
 
+    def test_zero_weight_cycle_and_equal_routes(self):
+        edges = [(0, 1, 0), (1, 2, 0), (2, 0, 0), (1, 3, 5), (2, 3, 5)]
+        self.assertEqual(self.query(edges), self.route(0, 3, [0, 1, 3], 5))
+        self.assertEqual(self.query(edges, 2, 2), self.route(2, 2, [2], 0))
+
+    def test_unreachable_before_reachable_target(self):
+        self.assertEqual(self.query([(0, 5, 1)], target=-2),
+                         '从正门到所有景点的最佳路线：\n' +
+                         ''.join(f'  到{name}：不存在可达路径。\n' for name in NAMES[1:5]) +
+                         '  到宿舍区：正门 -> 宿舍区，距离 1m\n')
+
+    def test_sentinel_limit_and_alternative_route(self):
+        # Distances >= INF are outside the original finite-distance representation.
+        for length in (1, 2, INF - 1):
+            edges = [(0, 1, INF - 1), (1, 3, length)]
+            self.assertEqual(self.query(edges), '正门 到 教学楼 不存在可达路径。\n')
+            self.assertEqual(self.query(edges + [(0, 3, 7)]),
+                             self.route(0, 3, [0, 3], 7))
+
     def test_missing_endpoints(self):
         for start, target in [(-1, 0), (0, -1), (-1, -1)]:
             self.assertEqual(self.query(start=start, target=target), '起点或终点不存在。\n')
         self.assertEqual(self.query(start=-1, target=-2), '起点不存在。\n')
 
     def test_original_demo_unchanged(self):
-        actual = subprocess.check_output([self.binary, 'demo'])
+        actual = subprocess.check_output([self.binary, 'demo'], timeout=10)
         self.assertEqual(actual, (ROOT / 'tests/fixtures/campus_demo.txt').read_bytes())
 
     def test_random_all_queries_against_floyd(self):
