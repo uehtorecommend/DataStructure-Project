@@ -141,6 +141,10 @@ void bestRouteTo(const CampusMap *map, const char *from, const char *to)
         return;
     }
     dijkstra(map, s, dist, prev);
+    if (dist[t] >= INF) {
+        printf("%s 到 %s 不存在可达路径。\n", from, to);
+        return;
+    }
     printf("%s 到 %s 的最佳路线：", from, to);
     printPath(map, prev, t);
     printf("，距离 %dm\n", dist[t]);
@@ -163,6 +167,10 @@ void bestRoutesToAll(const CampusMap *map, const char *from)
             continue;
         }
         printf("  到%s：", map->spots[i].name);
+        if (dist[i] >= INF) {
+            printf("不存在可达路径。\n");
+            continue;
+        }
         printPath(map, prev, i);
         printf("，距离 %dm\n", dist[i]);
     }
