@@ -1,15 +1,23 @@
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
 #define HASH_SIZE 31
 #define MAX_CANDIDATE 31
 
+/* 容量含结尾空字符；输入按字节计数（UTF-8 中文通常占多个字节）。 */
+#define NAME_CAPACITY 30
+#define CLASS_CAPACITY 40
+#define MAJOR_CAPACITY 40
+#define GRADE_CAPACITY 20
+#define ACHIEVEMENT_CAPACITY 160
+
 typedef struct {
-    char name[30];
-    char className[40];
-    char major[40];
-    char grade[20];
-    char achievement[160];
+    char name[NAME_CAPACITY];
+    char className[CLASS_CAPACITY];
+    char major[MAJOR_CAPACITY];
+    char grade[GRADE_CAPACITY];
+    char achievement[ACHIEVEMENT_CAPACITY];
     int votes;
     int used;
 } Candidate;
@@ -18,18 +26,50 @@ typedef struct {
     Candidate data[HASH_SIZE];
 } HashTable;
 
+/* 只读取容量范围内的字节；不截断输入，也不接受 NULL。 */
+static int fieldFits(const char *text, size_t capacity)
+{
+    if (text == NULL) {
+        return 0;
+    }
+    for (size_t i = 0; i < capacity; ++i) {
+        if (text[i] == '\0') {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int validName(const char *name)
+{
+    return fieldFits(name, NAME_CAPACITY) && name[0] != '\0';
+}
+
+/* 同时验证直接构造的记录，避免未终止的数组进入散列表。 */
+static int validCandidate(const Candidate *candidate)
+{
+    return candidate->used == 1 && candidate->votes >= 0 &&
+           validName(candidate->name) &&
+           fieldFits(candidate->className, CLASS_CAPACITY) &&
+           fieldFits(candidate->major, MAJOR_CAPACITY) &&
+           fieldFits(candidate->grade, GRADE_CAPACITY) &&
+           fieldFits(candidate->achievement, ACHIEVEMENT_CAPACITY);
+}
+
 /* 函数功能：初始化候选人散列表。 */
 void initTable(HashTable *table)
 {
-    for (int i = 0; i < HASH_SIZE; ++i) {
-        table->data[i].used = 0;
-        table->data[i].votes = 0;
+    if (table != NULL) {
+        memset(table, 0, sizeof(*table));
     }
 }
 
 /* 函数功能：字符串哈希函数。 */
 int hashName(const char *name)
 {
+    if (!validName(name)) {
+        return -1;
+    }
     unsigned int h = 0;
     while (*name) {
         h = h * 131u + (unsigned char)(*name);
@@ -41,8 +81,15 @@ int hashName(const char *name)
 /* 函数功能：查找候选人在散列表中的位置。 */
 int findCandidate(const HashTable *table, const char *name, int *compareCount)
 {
-    int start = hashName(name);
+    int ignoredCount = 0;
+    if (compareCount == NULL) {
+        compareCount = &ignoredCount;
+    }
     *compareCount = 0;
+    if (table == NULL || !validName(name)) {
+        return -1;
+    }
+    int start = hashName(name);
     for (int i = 0; i < HASH_SIZE; ++i) {
         int pos = (start + i) % HASH_SIZE;
         ++(*compareCount);
@@ -59,6 +106,10 @@ int findCandidate(const HashTable *table, const char *name, int *compareCount)
 /* 函数功能：提名候选人。 */
 int nominate(HashTable *table, Candidate candidate)
 {
+    if (table == NULL || !validCandidate(&candidate)) {
+        printf("提名失败：候选人字段无效或超过字节长度限制。\n");
+        return 0;
+    }
     int compare = 0;
     if (findCandidate(table, candidate.name, &compare) != -1) {
         printf("候选人%s已存在，不能重复提名。\n", candidate.name);
@@ -81,10 +132,18 @@ int nominate(HashTable *table, Candidate candidate)
 /* 函数功能：为候选人投票。 */
 int vote(HashTable *table, const char *name)
 {
+    if (table == NULL || !validName(name)) {
+        printf("投票失败：姓名无效或超过字节长度限制。\n");
+        return 0;
+    }
     int compare = 0;
     int pos = findCandidate(table, name, &compare);
     if (pos == -1) {
         printf("投票失败：未找到候选人%s。\n", name);
+        return 0;
+    }
+    if (table->data[pos].votes == INT_MAX) {
+        printf("投票失败：票数已达上限。\n");
         return 0;
     }
     table->data[pos].votes++;
@@ -96,6 +155,10 @@ int vote(HashTable *table, const char *name)
 /* 函数功能：查看候选人基本信息。 */
 void showCandidate(const HashTable *table, const char *name)
 {
+    if (table == NULL || !validName(name)) {
+        printf("查询失败：姓名无效或超过字节长度限制。\n");
+        return;
+    }
     int compare = 0;
     int pos = findCandidate(table, name, &compare);
     if (pos == -1) {
@@ -143,11 +206,19 @@ void showRanking(const HashTable *table)
     }
 }
 
-/* 函数功能：创建候选人记录。 */
+/* 创建记录：姓名须非空，其余字段可为空；最大有效字节数为容量减一。
+ * 失败返回全零记录（used=0），nominate 会明确拒绝；成功 used=1。
+ * 保留按值返回接口，全部字段验证通过后才复制，禁止静默截断。
+ */
 Candidate makeCandidate(const char *name, const char *className, const char *major,
                         const char *grade, const char *achievement)
 {
-    Candidate c;
+    Candidate c = {0};
+    if (!validName(name) || !fieldFits(className, CLASS_CAPACITY) ||
+        !fieldFits(major, MAJOR_CAPACITY) || !fieldFits(grade, GRADE_CAPACITY) ||
+        !fieldFits(achievement, ACHIEVEMENT_CAPACITY)) {
+        return c;
+    }
     strcpy(c.name, name);
     strcpy(c.className, className);
     strcpy(c.major, major);
