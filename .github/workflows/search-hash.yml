@@ -1,0 +1,44 @@
+name: Search hash regression
+
+on:
+  push:
+    paths:
+      - 'DataStructure-Project/实验7-查找算法验证.c'
+      - 'tests/test_search_hash.py'
+      - 'tests/search_hash_driver.c'
+      - 'tests/fixtures/search_hash_demo.txt'
+      - '.github/workflows/search-hash.yml'
+  pull_request:
+    paths:
+      - 'DataStructure-Project/实验7-查找算法验证.c'
+      - 'tests/test_search_hash.py'
+      - 'tests/search_hash_driver.c'
+      - 'tests/fixtures/search_hash_demo.txt'
+      - '.github/workflows/search-hash.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    name: Search hash (${{ matrix.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [normal, sanitize]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Run hash regression tests
+        if: matrix.mode == 'normal'
+        run: python3 tests/test_search_hash.py -v
+      - name: Run hash tests with ASan and UBSan
+        if: matrix.mode == 'sanitize'
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: python3 tests/test_search_hash.py --sanitize -v
