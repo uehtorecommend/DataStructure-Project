@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <limits>
@@ -42,20 +43,20 @@ static int courseCap = DEFAULT_COURSE_CAP;
 static vector<SemesterPlan> lastPlan;
 static string lastPlanTitle;
 
-/* °´Á½ĞĞ¸ñÊ½Êä³öÎŞ½âÔ­Òò£¬Ê¹´íÎóÀàĞÍºÍ¾ßÌåÎ»ÖÃ¸üÇåÎú */
+/* æŒ‰ä¸¤è¡Œæ ¼å¼è¾“å‡ºæ— è§£åŸå› ï¼Œä½¿é”™è¯¯ç±»å‹å’Œå…·ä½“ä½ç½®æ›´æ¸…æ™° */
 static void printNoSolution(const string &type, const string &detail) {
-    cout << "\n¡¾ÎŞ½â¡¿ " << type << "\n";
+    cout << "\nã€æ— è§£ã€‘ " << type << "\n";
     cout <<  detail << "\n";
 }
 
-/* ½«ÊıÖµ×ªÎª×Ö·û´®£¬±ãÓÚÆ´½ÓÌáÊ¾ĞÅÏ¢ */
+/* å°†æ•°å€¼è½¬ä¸ºå­—ç¬¦ä¸²ï¼Œä¾¿äºæ‹¼æ¥æç¤ºä¿¡æ¯ */
 static string toStr(double value) {
     ostringstream out;
     out << value;
     return out.str();
 }
 
-/* ¸ù¾İ¿Î³Ì±àºÅ²éÕÒ¿Î³ÌÏÂ±ê */
+/* æ ¹æ®è¯¾ç¨‹ç¼–å·æŸ¥æ‰¾è¯¾ç¨‹ä¸‹æ ‡ */
 static int findCourseIndex(const string &id) {
     for (int i = 0; i < (int)courses.size(); ++i) {
         if (courses[i].id == id) {
@@ -65,7 +66,7 @@ static int findCourseIndex(const string &id) {
     return -1;
 }
 
-/* ¸ù¾İ¿Î³ÌÊı×éºÍÏÈĞŞ¹ØÏµ½¨Á¢ AOV Í¼ */
+/* æ ¹æ®è¯¾ç¨‹æ•°ç»„å’Œå…ˆä¿®å…³ç³»å»ºç«‹ AOV å›¾ */
 static bool createGraph(Graph &g) {
     int n = (int)courses.size();
     g.adj.assign(n, vector<int>());
@@ -75,19 +76,19 @@ static bool createGraph(Graph &g) {
         for (int j = 0; j < (int)courses[i].pre.size(); ++j) {
             int preIndex = findCourseIndex(courses[i].pre[j]);
             if (preIndex == -1) {
-                printNoSolution("ÏÈĞŞ¿Î³Ì²»´æÔÚ",
-                                "¿Î³Ì " + courses[i].id + " µÄÏÈĞŞ¿Î³Ì " +
-                                courses[i].pre[j] + " ²»´æÔÚ¡£");
+                printNoSolution("å…ˆä¿®è¯¾ç¨‹ä¸å­˜åœ¨",
+                                "è¯¾ç¨‹ " + courses[i].id + " çš„å…ˆä¿®è¯¾ç¨‹ " +
+                                courses[i].pre[j] + " ä¸å­˜åœ¨ã€‚");
                 return false;
             }
-            g.adj[preIndex].push_back(i); // ÏÈĞŞ¿ÎÖ¸ÏòºóĞø¿Î³Ì
+            g.adj[preIndex].push_back(i); // å…ˆä¿®è¯¾æŒ‡å‘åç»­è¯¾ç¨‹
             ++g.indegree[i];
         }
     }
     return true;
 }
 
-/* ÍØÆËÅÅĞò£º³É¹¦Ê±Êä³öÍØÆËĞòÁĞ£¬²¢¼ÆËã×îÔç¿ÉĞŞ²ãÊı */
+/* æ‹“æ‰‘æ’åºï¼šæˆåŠŸæ—¶è¾“å‡ºæ‹“æ‰‘åºåˆ—ï¼Œå¹¶è®¡ç®—æœ€æ—©å¯ä¿®å±‚æ•° */
 static bool topologicalSort(const Graph &g, vector<int> &topoOrder, vector<int> &earliest) {
     vector<int> indegree = g.indegree;
     queue<int> q;
@@ -96,7 +97,7 @@ static bool topologicalSort(const Graph &g, vector<int> &topoOrder, vector<int> 
     earliest.assign(courses.size(), 1);
     for (int i = 0; i < (int)indegree.size(); ++i) {
         if (indegree[i] == 0) {
-            q.push(i); // Èë¶ÈÎª0µÄ¿Î³Ì¿ÉÒÔ×îÏÈÑ§Ï°
+            q.push(i); // å…¥åº¦ä¸º0çš„è¯¾ç¨‹å¯ä»¥æœ€å…ˆå­¦ä¹ 
         }
     }
 
@@ -106,7 +107,7 @@ static bool topologicalSort(const Graph &g, vector<int> &topoOrder, vector<int> 
         topoOrder.push_back(v);
         for (int i = 0; i < (int)g.adj[v].size(); ++i) {
             int w = g.adj[v][i];
-            earliest[w] = max(earliest[w], earliest[v] + 1); // ¸üĞÂºó¼Ì¿Î³Ì²ãÊı
+            earliest[w] = max(earliest[w], earliest[v] + 1); // æ›´æ–°åç»§è¯¾ç¨‹å±‚æ•°
             if (--indegree[w] == 0) {
                 q.push(w);
             }
@@ -115,44 +116,44 @@ static bool topologicalSort(const Graph &g, vector<int> &topoOrder, vector<int> 
     return topoOrder.size() == courses.size();
 }
 
-/* ÅĞ¶ÏÒ»ÃÅ¿Î³ÌÊÇ·ñ»¹ÄÜ·ÅÈëÄ³¸öÑ§ÆÚ */
+/* åˆ¤æ–­ä¸€é—¨è¯¾ç¨‹æ˜¯å¦è¿˜èƒ½æ”¾å…¥æŸä¸ªå­¦æœŸ */
 static bool canPut(const SemesterPlan &sem, int idx) {
     return (int)sem.items.size() < courseCap &&
            sem.totalCredit + courses[idx].credit <= creditCap;
 }
 
-/* ½«¿Î³Ì¼ÓÈëÖ¸¶¨Ñ§ÆÚ */
+/* å°†è¯¾ç¨‹åŠ å…¥æŒ‡å®šå­¦æœŸ */
 static void putCourse(SemesterPlan &sem, int idx) {
     sem.items.push_back(idx);
     sem.totalCredit += courses[idx].credit;
 }
 
-/* ¼ì²é¿Î³ÌÊıÁ¿¡¢Ñ§·ÖµÈ»ù´¡Ô¼Êø */
+/* æ£€æŸ¥è¯¾ç¨‹æ•°é‡ã€å­¦åˆ†ç­‰åŸºç¡€çº¦æŸ */
 static bool checkBasicLimits() {
     if (courses.empty()) {
-        cout << "µ±Ç°Ã»ÓĞ¿Î³Ì£¬ÇëÏÈ¶ÁÈ¡»òÊäÈë¿Î³ÌÄ¿Â¼¡£\n";
+        cout << "å½“å‰æ²¡æœ‰è¯¾ç¨‹ï¼Œè¯·å…ˆè¯»å–æˆ–è¾“å…¥è¯¾ç¨‹ç›®å½•ã€‚\n";
         return false;
     }
     for (int i = 0; i < (int)courses.size(); ++i) {
         if (courses[i].credit > creditCap) {
-            printNoSolution("Ñ§·Ö²»×ã",
-                            "¿Î³Ì " + courses[i].id + " Ñ§·ÖÎª " +
-                            toStr(courses[i].credit) + "£¬³¬¹ıµ¥Ñ§ÆÚÑ§·ÖÉÏÏŞ " +
-                            toStr(creditCap) + "¡£");
+            printNoSolution("å­¦åˆ†ä¸è¶³",
+                            "è¯¾ç¨‹ " + courses[i].id + " å­¦åˆ†ä¸º " +
+                            toStr(courses[i].credit) + "ï¼Œè¶…è¿‡å•å­¦æœŸå­¦åˆ†ä¸Šé™ " +
+                            toStr(creditCap) + "ã€‚");
             return false;
         }
     }
     if ((int)courses.size() > semesterCount * courseCap) {
-        printNoSolution("¿Î³ÌÈİÁ¿²»×ã",
-                        "¿Î³Ì×ÜÊı " + toStr((int)courses.size()) + "£¬" +
-                        toStr(semesterCount) + " ¸öÑ§ÆÚ×î¶àÖ»ÄÜ°²ÅÅ " +
-                        toStr(semesterCount * courseCap) + " ÃÅ¿Î³Ì¡£");
+        printNoSolution("è¯¾ç¨‹å®¹é‡ä¸è¶³",
+                        "è¯¾ç¨‹æ€»æ•° " + toStr((int)courses.size()) + "ï¼Œ" +
+                        toStr(semesterCount) + " ä¸ªå­¦æœŸæœ€å¤šåªèƒ½å®‰æ’ " +
+                        toStr(semesterCount * courseCap) + " é—¨è¯¾ç¨‹ã€‚");
         return false;
     }
     return true;
 }
 
-/* ½¨Í¼²¢Íê³ÉÍØÆËÅÅĞò£¬ÊÇÁ½ÖÖÅÅ¿Î²ßÂÔ¹²Í¬µÄ×¼±¸²½Öè */
+/* å»ºå›¾å¹¶å®Œæˆæ‹“æ‰‘æ’åºï¼Œæ˜¯ä¸¤ç§æ’è¯¾ç­–ç•¥å…±åŒçš„å‡†å¤‡æ­¥éª¤ */
 static bool prepareTopo(Graph &g, vector<int> &topoOrder, vector<int> &earliest) {
     if (!checkBasicLimits()) {
         return false;
@@ -161,63 +162,63 @@ static bool prepareTopo(Graph &g, vector<int> &topoOrder, vector<int> &earliest)
         return false;
     }
     if (!topologicalSort(g, topoOrder, earliest)) {
-        printNoSolution("ÏÈĞŞ¿Î³ÌÃ¬¶Ü", "¿Î³ÌÏÈĞŞ¹ØÏµÍ¼ÖĞ´æÔÚ»ØÂ·£¬ÎŞ·¨Íê³ÉÍØÆËÅÅĞò¡£");
+        printNoSolution("å…ˆä¿®è¯¾ç¨‹çŸ›ç›¾", "è¯¾ç¨‹å…ˆä¿®å…³ç³»å›¾ä¸­å­˜åœ¨å›è·¯ï¼Œæ— æ³•å®Œæˆæ‹“æ‰‘æ’åºã€‚");
         return false;
     }
     return true;
 }
 
-/* ÔÚ¿ØÖÆÌ¨Êä³ö½ÌÑ§¼Æ»® */
+/* åœ¨æ§åˆ¶å°è¾“å‡ºæ•™å­¦è®¡åˆ’ */
 static void printPlan(const vector<SemesterPlan> &plan, const string &title) {
     cout << "\n" << title << "\n";
     for (int i = 0; i < (int)plan.size(); ++i) {
-        cout << "µÚ " << i + 1 << " Ñ§ÆÚ£º¿Î³ÌÊı " << plan[i].items.size()
-             << "£¬Ñ§·Ö " << plan[i].totalCredit << "\n";
+        cout << "ç¬¬ " << i + 1 << " å­¦æœŸï¼šè¯¾ç¨‹æ•° " << plan[i].items.size()
+             << "ï¼Œå­¦åˆ† " << plan[i].totalCredit << "\n";
         if (plan[i].items.empty()) {
-            cout << "  £¨ÎŞ£©\n";
+            cout << "  ï¼ˆæ— ï¼‰\n";
         }
         for (int j = 0; j < (int)plan[i].items.size(); ++j) {
             int idx = plan[i].items[j];
             cout << "  " << courses[idx].id << "  "
                  << courses[idx].name << "  "
-                 << courses[idx].credit << " Ñ§·Ö\n";
+                 << courses[idx].credit << " å­¦åˆ†\n";
         }
     }
 }
 
-/* ´ÓÎÄ¼ş¶ÁÈ¡¿Î³Ì½øĞŞÄ¿Â¼
- * ÎÄ¼şµÚÒ»ĞĞÎª¿Î³Ì×ÜÊı¡£
- * ºóĞøÃ¿ĞĞ¸ñÊ½ÒªÇó£º<¿Î³Ì±àºÅ> <¿Î³ÌÃû³Æ> <Ñ§·Ö> <ÏÈĞŞ¿Î³ÌÊı> <ÏÈĞŞ1±àºÅ> <ÏÈĞŞ2±àºÅ> ...
- * ËµÃ÷£º¿Î³ÌÃû³Æ²»ÄÜ°üº¬¿Õ¸ñ£»Ñ§·ÖÔÊĞíÊäÈëĞ¡Êı£»ÏÈĞŞ¿Î³ÌÈÔÊ¹ÓÃ¿Î³Ì±àºÅ±íÊ¾¡£
+/* ä»æ–‡ä»¶è¯»å–è¯¾ç¨‹è¿›ä¿®ç›®å½•
+ * æ–‡ä»¶ç¬¬ä¸€è¡Œä¸ºè¯¾ç¨‹æ€»æ•°ã€‚
+ * åç»­æ¯è¡Œæ ¼å¼è¦æ±‚ï¼š<è¯¾ç¨‹ç¼–å·> <è¯¾ç¨‹åç§°> <å­¦åˆ†> <å…ˆä¿®è¯¾ç¨‹æ•°> <å…ˆä¿®1ç¼–å·> <å…ˆä¿®2ç¼–å·> ...
+ * è¯´æ˜ï¼šè¯¾ç¨‹åç§°ä¸èƒ½åŒ…å«ç©ºæ ¼ï¼›å­¦åˆ†å…è®¸è¾“å…¥å°æ•°ï¼›å…ˆä¿®è¯¾ç¨‹ä»ä½¿ç”¨è¯¾ç¨‹ç¼–å·è¡¨ç¤ºã€‚
 */
 void readCoursefile() {
     string filename;
     int n;
 
-    cout << "ÇëÊäÈë¿Î³ÌÄ¿Â¼ÎÄ¼şÃû£º";
+    cout << "è¯·è¾“å…¥è¯¾ç¨‹ç›®å½•æ–‡ä»¶åï¼š";
     cin >> filename;
 
     ifstream fin(filename.c_str());
     if (!fin) {
-        cout << "ÎÄ¼ş´ò¿ªÊ§°Ü¡£\n";
+        cout << "æ–‡ä»¶æ‰“å¼€å¤±è´¥ã€‚\n";
         return;
     }
     if (!(fin >> n) || n < 0 || n > MAX_COURSES) {
-        cout << "ÎÄ¼ş¸ñÊ½´íÎó£ºµÚÒ»ĞĞÓ¦Îª¿Î³ÌÊıÁ¿£¨0~" << MAX_COURSES << "£©¡£\n";
+        cout << "æ–‡ä»¶æ ¼å¼é”™è¯¯ï¼šç¬¬ä¸€è¡Œåº”ä¸ºè¯¾ç¨‹æ•°é‡ï¼ˆ0~" << MAX_COURSES << "ï¼‰ã€‚\n";
         return;
     }
 
-    courses.clear(); // ¶ÁÈ¡ĞÂÄ¿Â¼Ê±¸²¸ÇÔ­ÓĞ¿Î³ÌÊı¾İ
+    courses.clear(); // è¯»å–æ–°ç›®å½•æ—¶è¦†ç›–åŸæœ‰è¯¾ç¨‹æ•°æ®
     for (int i = 0; i < n; ++i) {
         Course c;
         int preCount;
         if (!(fin >> c.id >> c.name >> c.credit >> preCount)) {
-            cout << "ÎÄ¼ş¸ñÊ½´íÎó£ºµÚ " << i + 1 << " ÃÅ¿Î³ÌĞÅÏ¢²»ÍêÕû¡£\n";
+            cout << "æ–‡ä»¶æ ¼å¼é”™è¯¯ï¼šç¬¬ " << i + 1 << " é—¨è¯¾ç¨‹ä¿¡æ¯ä¸å®Œæ•´ã€‚\n";
             courses.clear();
             return;
         }
         if (preCount < 0 || preCount > MAX_PRE) {
-            cout << "ÎÄ¼ş¸ñÊ½´íÎó£º¿Î³Ì " << c.id << " µÄÏÈĞŞ¿Î³ÌÊıÁ¿·Ç·¨¡£\n";
+            cout << "æ–‡ä»¶æ ¼å¼é”™è¯¯ï¼šè¯¾ç¨‹ " << c.id << " çš„å…ˆä¿®è¯¾ç¨‹æ•°é‡éæ³•ã€‚\n";
             courses.clear();
             return;
         }
@@ -226,88 +227,88 @@ void readCoursefile() {
             fin >> c.pre[j];
         }
         if (findCourseIndex(c.id) != -1) {
-            cout << "ÎÄ¼ş¸ñÊ½´íÎó£º¿Î³Ì±àºÅ " << c.id << " ÖØ¸´¡£\n";
+            cout << "æ–‡ä»¶æ ¼å¼é”™è¯¯ï¼šè¯¾ç¨‹ç¼–å· " << c.id << " é‡å¤ã€‚\n";
             courses.clear();
             return;
         }
         courses.push_back(c);
     }
     lastPlan.clear();
-    cout << "³É¹¦¶ÁÈ¡ " << courses.size() << " ÃÅ¿Î³Ì¡£\n";
+    cout << "æˆåŠŸè¯»å– " << courses.size() << " é—¨è¯¾ç¨‹ã€‚\n";
 }
 
-/* Í¨¹ı¿ØÖÆÌ¨ÖğÏîÊäÈë¿Î³Ì½øĞŞÄ¿Â¼
- * ¸ñÊ½ÒªÇóÓëÎÄ¼ş¶ÁÈ¡Ò»ÖÂ£º¿Î³Ì±àºÅ¡¢¿Î³ÌÃû³Æ¡¢Ñ§·Ö¡¢Ö±½ÓÏÈĞŞ¿Î³ÌÊıÁ¿¡¢¸÷ÏÈĞŞ¿Î³Ì±àºÅ¡£
- * ËµÃ÷£º¿Î³ÌÃû³Æ²»ÄÜ°üº¬¿Õ¸ñ£»Ñ§·ÖÔÊĞíÊäÈëĞ¡Êı£»ÏÈĞŞ¿Î³ÌÊäÈë¿Î³Ì±àºÅ¡£
+/* é€šè¿‡æ§åˆ¶å°é€é¡¹è¾“å…¥è¯¾ç¨‹è¿›ä¿®ç›®å½•
+ * æ ¼å¼è¦æ±‚ä¸æ–‡ä»¶è¯»å–ä¸€è‡´ï¼šè¯¾ç¨‹ç¼–å·ã€è¯¾ç¨‹åç§°ã€å­¦åˆ†ã€ç›´æ¥å…ˆä¿®è¯¾ç¨‹æ•°é‡ã€å„å…ˆä¿®è¯¾ç¨‹ç¼–å·ã€‚
+ * è¯´æ˜ï¼šè¯¾ç¨‹åç§°ä¸èƒ½åŒ…å«ç©ºæ ¼ï¼›å­¦åˆ†å…è®¸è¾“å…¥å°æ•°ï¼›å…ˆä¿®è¯¾ç¨‹è¾“å…¥è¯¾ç¨‹ç¼–å·ã€‚
 */
 void manualInput() {
     int n;
-    cout << "ÇëÊäÈë¿Î³ÌÊıÁ¿£º";
+    cout << "è¯·è¾“å…¥è¯¾ç¨‹æ•°é‡ï¼š";
     if (!(cin >> n) || n < 0 || n > MAX_COURSES) {
-        cout << "¿Î³ÌÊıÁ¿·Ç·¨¡£\n";
+        cout << "è¯¾ç¨‹æ•°é‡éæ³•ã€‚\n";
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
         return;
     }
 
-    courses.clear(); // ÊÖ¶¯ÊäÈëÊÓÎªÖØĞÂ½¨Á¢¿Î³ÌÄ¿Â¼
+    courses.clear(); // æ‰‹åŠ¨è¾“å…¥è§†ä¸ºé‡æ–°å»ºç«‹è¯¾ç¨‹ç›®å½•
     for (int i = 0; i < n; ++i) {
         Course c;
         int preCount;
-        cout << "\nµÚ " << i + 1 << " ÃÅ¿Î³Ì±àºÅ£º";
+        cout << "\nç¬¬ " << i + 1 << " é—¨è¯¾ç¨‹ç¼–å·ï¼š";
         cin >> c.id;
         if (findCourseIndex(c.id) != -1) {
-            cout << "¿Î³Ì±àºÅÖØ¸´£¬±¾´ÎÊäÈëÖÕÖ¹¡£\n";
+            cout << "è¯¾ç¨‹ç¼–å·é‡å¤ï¼Œæœ¬æ¬¡è¾“å…¥ç»ˆæ­¢ã€‚\n";
             courses.clear();
             return;
         }
-        cout << "¿Î³ÌÃû³Æ£¨²»º¬¿Õ¸ñ£©£º";
+        cout << "è¯¾ç¨‹åç§°ï¼ˆä¸å«ç©ºæ ¼ï¼‰ï¼š";
         cin >> c.name;
-        cout << "Ñ§·Ö£º";
+        cout << "å­¦åˆ†ï¼š";
         cin >> c.credit;
-        cout << "Ö±½ÓÏÈĞŞ¿Î³ÌÊıÁ¿£º";
+        cout << "ç›´æ¥å…ˆä¿®è¯¾ç¨‹æ•°é‡ï¼š";
         cin >> preCount;
         if (preCount < 0 || preCount > MAX_PRE) {
-            cout << "ÏÈĞŞ¿Î³ÌÊıÁ¿·Ç·¨£¬±¾´ÎÊäÈëÖÕÖ¹¡£\n";
+            cout << "å…ˆä¿®è¯¾ç¨‹æ•°é‡éæ³•ï¼Œæœ¬æ¬¡è¾“å…¥ç»ˆæ­¢ã€‚\n";
             courses.clear();
             return;
         }
         c.pre.resize(preCount);
         for (int j = 0; j < preCount; ++j) {
-            cout << "µÚ " << j + 1 << " ¸öÏÈĞŞ¿Î³Ì±àºÅ£º";
+            cout << "ç¬¬ " << j + 1 << " ä¸ªå…ˆä¿®è¯¾ç¨‹ç¼–å·ï¼š";
             cin >> c.pre[j];
         }
         courses.push_back(c);
     }
     lastPlan.clear();
-    cout << "ÊÖ¶¯ÊäÈëÍê³É£¬¹² " << courses.size() << " ÃÅ¿Î³Ì¡£\n";
+    cout << "æ‰‹åŠ¨è¾“å…¥å®Œæˆï¼Œå…± " << courses.size() << " é—¨è¯¾ç¨‹ã€‚\n";
 }
 
-/* ÏÔÊ¾ËùÓĞ¿Î³Ì¼°ÆäÖ±½ÓÏÈĞŞ¿Î³Ì
- * ÏÔÊ¾¸ñÊ½£º¿Î³Ì±àºÅ¡¢¿Î³ÌÃû³Æ¡¢Ñ§·Ö¡¢Ö±½ÓÏÈĞŞ¿Î³ÌÃû³Æ¡£
- * ËµÃ÷£ºÏÈĞŞ¿Î³ÌÔÚÊäÈëºÍ´æ´¢Ê±ÈÔÎª±àºÅ£¬´Ë´¦Ö»ÔÚÕ¹Ê¾Ê±×ª»»Îª¿Î³ÌÃû³Æ¡£
+/* æ˜¾ç¤ºæ‰€æœ‰è¯¾ç¨‹åŠå…¶ç›´æ¥å…ˆä¿®è¯¾ç¨‹
+ * æ˜¾ç¤ºæ ¼å¼ï¼šè¯¾ç¨‹ç¼–å·ã€è¯¾ç¨‹åç§°ã€å­¦åˆ†ã€ç›´æ¥å…ˆä¿®è¯¾ç¨‹åç§°ã€‚
+ * è¯´æ˜ï¼šå…ˆä¿®è¯¾ç¨‹åœ¨è¾“å…¥å’Œå­˜å‚¨æ—¶ä»ä¸ºç¼–å·ï¼Œæ­¤å¤„åªåœ¨å±•ç¤ºæ—¶è½¬æ¢ä¸ºè¯¾ç¨‹åç§°ã€‚
 */
 void showCourserelations() {
     if (courses.empty()) {
-        cout << "µ±Ç°Ã»ÓĞ¿Î³Ì¡£\n";
+        cout << "å½“å‰æ²¡æœ‰è¯¾ç¨‹ã€‚\n";
         return;
     }
-    cout << "\n¿Î³Ì±àºÅ\t¿Î³ÌÃû³Æ\tÑ§·Ö\tÖ±½ÓÏÈĞŞ¿Î³Ì\n";
+    cout << "\nè¯¾ç¨‹ç¼–å·\tè¯¾ç¨‹åç§°\tå­¦åˆ†\tç›´æ¥å…ˆä¿®è¯¾ç¨‹\n";
     cout << "----------------------------------------\n";
     for (int i = 0; i < (int)courses.size(); ++i) {
         cout << courses[i].id << "\t" << courses[i].name
              << "\t" << courses[i].credit << "\t";
         if (courses[i].pre.empty()) {
-            cout << "ÎŞ";
+            cout << "æ— ";
         } else {
             for (int j = 0; j < (int)courses[i].pre.size(); ++j) {
                 int preIndex = findCourseIndex(courses[i].pre[j]);
                 if (j > 0) {
                     cout << ",";
                 }
-                // ÊäÈëºÍ´æ´¢ÈÔÊ¹ÓÃ¿Î³Ì±àºÅ£¬ÏÔÊ¾Ê±×ª»»Îª¿Î³ÌÃû³Æ
+                // è¾“å…¥å’Œå­˜å‚¨ä»ä½¿ç”¨è¯¾ç¨‹ç¼–å·ï¼Œæ˜¾ç¤ºæ—¶è½¬æ¢ä¸ºè¯¾ç¨‹åç§°
                 if (preIndex == -1) {
-                    cout << courses[i].pre[j] << "£¨Î´ÕÒµ½£©";
+                    cout << courses[i].pre[j] << "ï¼ˆæœªæ‰¾åˆ°ï¼‰";
                 } else {
                     cout << courses[preIndex].name;
                 }
@@ -317,98 +318,98 @@ void showCourserelations() {
     }
 }
 
-/* Ôö¼ÓÒ»ÃÅ¿Î³Ì
- * ÊäÈë¸ñÊ½ÒªÇó£º¿Î³Ì±àºÅ¡¢¿Î³ÌÃû³Æ¡¢Ñ§·Ö¡¢Ö±½ÓÏÈĞŞ¿Î³ÌÊıÁ¿¡¢¸÷ÏÈĞŞ¿Î³Ì±àºÅ¡£
- * ËµÃ÷£º¿Î³ÌÃû³Æ²»ÄÜ°üº¬¿Õ¸ñ£»Ñ§·ÖÔÊĞíÊäÈëĞ¡Êı¡£
+/* å¢åŠ ä¸€é—¨è¯¾ç¨‹
+ * è¾“å…¥æ ¼å¼è¦æ±‚ï¼šè¯¾ç¨‹ç¼–å·ã€è¯¾ç¨‹åç§°ã€å­¦åˆ†ã€ç›´æ¥å…ˆä¿®è¯¾ç¨‹æ•°é‡ã€å„å…ˆä¿®è¯¾ç¨‹ç¼–å·ã€‚
+ * è¯´æ˜ï¼šè¯¾ç¨‹åç§°ä¸èƒ½åŒ…å«ç©ºæ ¼ï¼›å­¦åˆ†å…è®¸è¾“å…¥å°æ•°ã€‚
 */
 static void addCourse() {
     Course c;
     int preCount;
     if ((int)courses.size() >= MAX_COURSES) {
-        cout << "¿Î³ÌÊıÁ¿ÒÑ´ïÉÏÏŞ¡£\n";
+        cout << "è¯¾ç¨‹æ•°é‡å·²è¾¾ä¸Šé™ã€‚\n";
         return;
     }
-    cout << "¿Î³Ì±àºÅ£º";
+    cout << "è¯¾ç¨‹ç¼–å·ï¼š";
     cin >> c.id;
     if (findCourseIndex(c.id) != -1) {
-        cout << "¿Î³Ì±àºÅÒÑ´æÔÚ¡£\n";
+        cout << "è¯¾ç¨‹ç¼–å·å·²å­˜åœ¨ã€‚\n";
         return;
     }
-    cout << "¿Î³ÌÃû³Æ£¨²»º¬¿Õ¸ñ£©£º";
+    cout << "è¯¾ç¨‹åç§°ï¼ˆä¸å«ç©ºæ ¼ï¼‰ï¼š";
     cin >> c.name;
-    cout << "Ñ§·Ö£º";
+    cout << "å­¦åˆ†ï¼š";
     cin >> c.credit;
-    cout << "Ö±½ÓÏÈĞŞ¿Î³ÌÊıÁ¿£º";
+    cout << "ç›´æ¥å…ˆä¿®è¯¾ç¨‹æ•°é‡ï¼š";
     cin >> preCount;
     if (preCount < 0 || preCount > MAX_PRE) {
-        cout << "ÏÈĞŞ¿Î³ÌÊıÁ¿·Ç·¨¡£\n";
+        cout << "å…ˆä¿®è¯¾ç¨‹æ•°é‡éæ³•ã€‚\n";
         return;
     }
     c.pre.resize(preCount);
     for (int j = 0; j < preCount; ++j) {
-        cout << "µÚ " << j + 1 << " ¸öÏÈĞŞ¿Î³Ì±àºÅ£º";
+        cout << "ç¬¬ " << j + 1 << " ä¸ªå…ˆä¿®è¯¾ç¨‹ç¼–å·ï¼š";
         cin >> c.pre[j];
     }
     courses.push_back(c);
     lastPlan.clear();
-    cout << "¿Î³ÌÒÑÔö¼Ó¡£\n";
+    cout << "è¯¾ç¨‹å·²å¢åŠ ã€‚\n";
 }
 
-/* É¾³ıÒ»ÃÅ¿Î³Ì£¬²¢ÒÆ³ıÆäËû¿Î³ÌÖĞÖ¸ÏòËüµÄÏÈĞŞ¹ØÏµ */
+/* åˆ é™¤ä¸€é—¨è¯¾ç¨‹ï¼Œå¹¶ç§»é™¤å…¶ä»–è¯¾ç¨‹ä¸­æŒ‡å‘å®ƒçš„å…ˆä¿®å…³ç³» */
 static void deleteCourse() {
     string id;
-    cout << "ÇëÊäÈëÒªÉ¾³ıµÄ¿Î³Ì±àºÅ£º";
+    cout << "è¯·è¾“å…¥è¦åˆ é™¤çš„è¯¾ç¨‹ç¼–å·ï¼š";
     cin >> id;
 
     int idx = findCourseIndex(id);
     if (idx == -1) {
-        cout << "Î´ÕÒµ½¸Ã¿Î³Ì¡£\n";
+        cout << "æœªæ‰¾åˆ°è¯¥è¯¾ç¨‹ã€‚\n";
         return;
     }
     courses.erase(courses.begin() + idx);
     for (int i = 0; i < (int)courses.size(); ++i) {
         courses[i].pre.erase(remove(courses[i].pre.begin(), courses[i].pre.end(), id),
-                             courses[i].pre.end()); // É¾³ıÏà¹ØÏÈĞŞ¹ØÏµ
+                             courses[i].pre.end()); // åˆ é™¤ç›¸å…³å…ˆä¿®å…³ç³»
     }
     lastPlan.clear();
-    cout << "¿Î³ÌÒÑÉ¾³ı£¬Ïà¹ØÏÈĞŞ¹ØÏµÒ²ÒÑÒÆ³ı¡£\n";
+    cout << "è¯¾ç¨‹å·²åˆ é™¤ï¼Œç›¸å…³å…ˆä¿®å…³ç³»ä¹Ÿå·²ç§»é™¤ã€‚\n";
 }
 
-/* ĞŞ¸ÄÒ»ÃÅ¿Î³ÌµÄ±àºÅ¡¢Ãû³Æ¡¢Ñ§·ÖºÍÏÈĞŞ¿Î³Ì
- * ÊäÈë¸ñÊ½ÒªÇó£ºĞÂµÄ¿Î³Ì±àºÅ¡¢¿Î³ÌÃû³Æ¡¢Ñ§·Ö¡¢Ö±½ÓÏÈĞŞ¿Î³ÌÊıÁ¿¡¢¸÷ÏÈĞŞ¿Î³Ì±àºÅ¡£
- * ËµÃ÷£ºÈô¿Î³Ì±àºÅ¸Ä±ä£¬ÆäËû¿Î³ÌÖĞÒıÓÃµÄ¾É±àºÅ»áÍ¬²½¸üĞÂ¡£
+/* ä¿®æ”¹ä¸€é—¨è¯¾ç¨‹çš„ç¼–å·ã€åç§°ã€å­¦åˆ†å’Œå…ˆä¿®è¯¾ç¨‹
+ * è¾“å…¥æ ¼å¼è¦æ±‚ï¼šæ–°çš„è¯¾ç¨‹ç¼–å·ã€è¯¾ç¨‹åç§°ã€å­¦åˆ†ã€ç›´æ¥å…ˆä¿®è¯¾ç¨‹æ•°é‡ã€å„å…ˆä¿®è¯¾ç¨‹ç¼–å·ã€‚
+ * è¯´æ˜ï¼šè‹¥è¯¾ç¨‹ç¼–å·æ”¹å˜ï¼Œå…¶ä»–è¯¾ç¨‹ä¸­å¼•ç”¨çš„æ—§ç¼–å·ä¼šåŒæ­¥æ›´æ–°ã€‚
 */
 static void modifyCourse() {
     string oldId;
     Course c;
     int preCount;
-    cout << "ÇëÊäÈëÒªĞŞ¸ÄµÄ¿Î³Ì±àºÅ£º";
+    cout << "è¯·è¾“å…¥è¦ä¿®æ”¹çš„è¯¾ç¨‹ç¼–å·ï¼š";
     cin >> oldId;
 
     int idx = findCourseIndex(oldId);
     if (idx == -1) {
-        cout << "Î´ÕÒµ½¸Ã¿Î³Ì¡£\n";
+        cout << "æœªæ‰¾åˆ°è¯¥è¯¾ç¨‹ã€‚\n";
         return;
     }
-    cout << "ĞÂµÄ¿Î³Ì±àºÅ£º";
+    cout << "æ–°çš„è¯¾ç¨‹ç¼–å·ï¼š";
     cin >> c.id;
     if (oldId != c.id && findCourseIndex(c.id) != -1) {
-        cout << "ĞÂ¿Î³Ì±àºÅÒÑ´æÔÚ¡£\n";
+        cout << "æ–°è¯¾ç¨‹ç¼–å·å·²å­˜åœ¨ã€‚\n";
         return;
     }
-    cout << "ĞÂµÄ¿Î³ÌÃû³Æ£¨²»º¬¿Õ¸ñ£©£º";
+    cout << "æ–°çš„è¯¾ç¨‹åç§°ï¼ˆä¸å«ç©ºæ ¼ï¼‰ï¼š";
     cin >> c.name;
-    cout << "ĞÂµÄÑ§·Ö£º";
+    cout << "æ–°çš„å­¦åˆ†ï¼š";
     cin >> c.credit;
-    cout << "ĞÂµÄÖ±½ÓÏÈĞŞ¿Î³ÌÊıÁ¿£º";
+    cout << "æ–°çš„ç›´æ¥å…ˆä¿®è¯¾ç¨‹æ•°é‡ï¼š";
     cin >> preCount;
     if (preCount < 0 || preCount > MAX_PRE) {
-        cout << "ÏÈĞŞ¿Î³ÌÊıÁ¿·Ç·¨¡£\n";
+        cout << "å…ˆä¿®è¯¾ç¨‹æ•°é‡éæ³•ã€‚\n";
         return;
     }
     c.pre.resize(preCount);
     for (int j = 0; j < preCount; ++j) {
-        cout << "µÚ " << j + 1 << " ¸öÏÈĞŞ¿Î³Ì±àºÅ£º";
+        cout << "ç¬¬ " << j + 1 << " ä¸ªå…ˆä¿®è¯¾ç¨‹ç¼–å·ï¼š";
         cin >> c.pre[j];
     }
     if (oldId != c.id) {
@@ -418,51 +419,51 @@ static void modifyCourse() {
     }
     courses[idx] = c;
     lastPlan.clear();
-    cout << "¿Î³ÌĞÅÏ¢ÒÑĞŞ¸Ä¡£\n";
+    cout << "è¯¾ç¨‹ä¿¡æ¯å·²ä¿®æ”¹ã€‚\n";
 }
 
-/* ¿Î³ÌÄ¿Â¼±à¼­²Ëµ¥ */
+/* è¯¾ç¨‹ç›®å½•ç¼–è¾‘èœå• */
 void editCourse() {
     int op;
-    cout << "\n1. Ôö¼Ó¿Î³Ì\n2. É¾³ı¿Î³Ì\n3. ĞŞ¸Ä¿Î³Ì\nÇëÊäÈë²Ù×÷±àºÅ£º";
+    cout << "\n1. å¢åŠ è¯¾ç¨‹\n2. åˆ é™¤è¯¾ç¨‹\n3. ä¿®æ”¹è¯¾ç¨‹\nè¯·è¾“å…¥æ“ä½œç¼–å·ï¼š";
     if (!(cin >> op)) {
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
-        cout << "ÊäÈëÎŞĞ§¡£\n";
+        cout << "è¾“å…¥æ— æ•ˆã€‚\n";
         return;
     }
     switch (op) {
         case 1: addCourse(); break;
         case 2: deleteCourse(); break;
         case 3: modifyCourse(); break;
-        default: cout << "Î´Öª²Ù×÷¡£\n"; break;
+        default: cout << "æœªçŸ¥æ“ä½œã€‚\n"; break;
     }
 }
 
-/* ÉèÖÃÑ§ÆÚ×ÜÊı¡¢Ñ§·ÖÉÏÏŞºÍÃ¿Ñ§ÆÚ¿Î³ÌÊıÉÏÏŞ */
+/* è®¾ç½®å­¦æœŸæ€»æ•°ã€å­¦åˆ†ä¸Šé™å’Œæ¯å­¦æœŸè¯¾ç¨‹æ•°ä¸Šé™ */
 void setCourseparameter() {
     int s, count;
     double credit;
-    cout << "ÇëÊäÈëÑ§ÆÚ×ÜÊı£¨1~" << MAX_SEMESTERS << "£©£º";
+    cout << "è¯·è¾“å…¥å­¦æœŸæ€»æ•°ï¼ˆ1~" << MAX_SEMESTERS << "ï¼‰ï¼š";
     cin >> s;
-    cout << "ÇëÊäÈëÒ»Ñ§ÆÚÑ§·ÖÉÏÏŞ£º";
+    cout << "è¯·è¾“å…¥ä¸€å­¦æœŸå­¦åˆ†ä¸Šé™ï¼š";
     cin >> credit;
-    cout << "ÇëÊäÈëÒ»Ñ§ÆÚ¿Î³ÌÊıÉÏÏŞ£¨²»³¬¹ı5£©£º";
+    cout << "è¯·è¾“å…¥ä¸€å­¦æœŸè¯¾ç¨‹æ•°ä¸Šé™ï¼ˆä¸è¶…è¿‡5ï¼‰ï¼š";
     cin >> count;
     if (s < 1 || s > MAX_SEMESTERS || credit <= 0 || count < 1 || count > DEFAULT_COURSE_CAP) {
-        cout << "²ÎÊı·Ç·¨£¬ÉèÖÃÊ§°Ü¡£\n";
+        cout << "å‚æ•°éæ³•ï¼Œè®¾ç½®å¤±è´¥ã€‚\n";
         return;
     }
     semesterCount = s;
     creditCap = credit;
     courseCap = count;
     lastPlan.clear();
-    cout << "²ÎÊıÉèÖÃ³É¹¦£ºÑ§ÆÚÊı=" << semesterCount
-         << "£¬Ñ§·ÖÉÏÏŞ=" << creditCap
-         << "£¬¿Î³ÌÊıÉÏÏŞ=" << courseCap << "¡£\n";
+    cout << "å‚æ•°è®¾ç½®æˆåŠŸï¼šå­¦æœŸæ•°=" << semesterCount
+         << "ï¼Œå­¦åˆ†ä¸Šé™=" << creditCap
+         << "ï¼Œè¯¾ç¨‹æ•°ä¸Šé™=" << courseCap << "ã€‚\n";
 }
 
-/* ¼ÆËãÈ«²¿¿Î³ÌµÄ×ÜÑ§·Ö£¬ÓÃÓÚÈ·¶¨¾ùÔÈ·Ö²¼Ä¿±ê */
+/* è®¡ç®—å…¨éƒ¨è¯¾ç¨‹çš„æ€»å­¦åˆ†ï¼Œç”¨äºç¡®å®šå‡åŒ€åˆ†å¸ƒç›®æ ‡ */
 static double totalCourseCredit() {
     double sum = 0;
     for (int i = 0; i < (int)courses.size(); ++i) {
@@ -471,7 +472,7 @@ static double totalCourseCredit() {
     return sum;
 }
 
-/* ¼ÆËãµ±Ç°¼Æ»®Ïà¶ÔÆ½¾ùÑ§·ÖµÄÆ«²î */
+/* è®¡ç®—å½“å‰è®¡åˆ’ç›¸å¯¹å¹³å‡å­¦åˆ†çš„åå·® */
 static double planCreditVariance(const vector<SemesterPlan> &plan, double target) {
     double variance = 0;
     for (int i = 0; i < (int)plan.size(); ++i) {
@@ -481,8 +482,8 @@ static double planCreditVariance(const vector<SemesterPlan> &plan, double target
     return variance;
 }
 
-/* ¼ÆËãÄ³ÃÅ¿ÎÔÚÏÈĞŞÔ¼ÊøÏÂ×îÔçÄÜ°²ÅÅµ½µÄÑ§ÆÚÏÂ±ê
- * assigned ´æ´¢µÄÊÇ1¿ªÊ¼µÄÑ§ÆÚºÅ£¬Òò´Ë·µ»ØÖµÕıºÃÊÇ0¿ªÊ¼µÄÏÂÒ»Ñ§ÆÚÏÂ±ê¡£
+/* è®¡ç®—æŸé—¨è¯¾åœ¨å…ˆä¿®çº¦æŸä¸‹æœ€æ—©èƒ½å®‰æ’åˆ°çš„å­¦æœŸä¸‹æ ‡
+ * assigned å­˜å‚¨çš„æ˜¯1å¼€å§‹çš„å­¦æœŸå·ï¼Œå› æ­¤è¿”å›å€¼æ­£å¥½æ˜¯0å¼€å§‹çš„ä¸‹ä¸€å­¦æœŸä¸‹æ ‡ã€‚
 */
 static int earliestSemesterByPrereq(int courseIndex, const vector<int> &assigned) {
     int startIndex = 0;
@@ -495,7 +496,7 @@ static int earliestSemesterByPrereq(int courseIndex, const vector<int> &assigned
     }
     return startIndex;
 }
-/* ·´ÏòÉ¨ÃèÍØÆËĞò£¬¼ÆËãÃ¿ÃÅ¿ÎÔÚÏÈĞŞÁ´Ô¼ÊøÏÂµÄ×îÍí¿ÉÅÅÑ§ÆÚÏÂ±ê */
+/* åå‘æ‰«ææ‹“æ‰‘åºï¼Œè®¡ç®—æ¯é—¨è¯¾åœ¨å…ˆä¿®é“¾çº¦æŸä¸‹çš„æœ€æ™šå¯æ’å­¦æœŸä¸‹æ ‡ */
 static vector<int> calculateLatestSemester(const Graph &g, const vector<int> &topoOrder) {
     vector<int> latest(courses.size(), semesterCount - 1);
     for (int i = (int)topoOrder.size() - 1; i >= 0; --i) {
@@ -508,7 +509,7 @@ static vector<int> calculateLatestSemester(const Graph &g, const vector<int> &to
     return latest;
 }
 
-/* ¼ì²éµ±Ç°Ñ¡ÔñÊÇ·ñ»áÈÃÉĞÎ´°²ÅÅµÄ¿Î³ÌÁ¢¿ÌÊ§È¥¿ÉĞĞÑ§ÆÚ */
+/* æ£€æŸ¥å½“å‰é€‰æ‹©æ˜¯å¦ä¼šè®©å°šæœªå®‰æ’çš„è¯¾ç¨‹ç«‹åˆ»å¤±å»å¯è¡Œå­¦æœŸ */
 static bool hasFuturePosition(const vector<SemesterPlan> &plan,
                               const vector<int> &assigned,
                               const vector<int> &topoOrder,
@@ -539,8 +540,8 @@ static bool hasFuturePosition(const vector<SemesterPlan> &plan,
     return true;
 }
 
-/* °´Ñ§Ï°¸ºµ£¾¡Á¿¾ùÔÈµÄ²ßÂÔÉú³É½ÌÑ§¼Æ»®
- * ÏÈ°´ÍØÆËĞò´¦Àí¿Î³Ì£¬ÔÙ´Ó×îÔçºÏ·¨Ñ§ÆÚ¿ªÊ¼Ñ¡Ôñµ±Ç°×î¾ùºâµÄÎ»ÖÃ¡£
+/* æŒ‰å­¦ä¹ è´Ÿæ‹…å°½é‡å‡åŒ€çš„ç­–ç•¥ç”Ÿæˆæ•™å­¦è®¡åˆ’
+ * å…ˆæŒ‰æ‹“æ‰‘åºå¤„ç†è¯¾ç¨‹ï¼Œå†ä»æœ€æ—©åˆæ³•å­¦æœŸå¼€å§‹é€‰æ‹©å½“å‰æœ€å‡è¡¡çš„ä½ç½®ã€‚
 */
 void Evengenerate() {
     Graph g;
@@ -563,13 +564,13 @@ void Evengenerate() {
         double bestAfterCredit = 0;
 
         if (preStart < 0) {
-            printNoSolution("ÏÈĞŞ¿Î³ÌÎ´Íê³É", "¿Î³Ì " + courses[idx].id + " µÄÖ±½ÓÏÈĞŞ¿Î³ÌÉĞÎ´È«²¿°²ÅÅ¡£");
+            printNoSolution("å…ˆä¿®è¯¾ç¨‹æœªå®Œæˆ", "è¯¾ç¨‹ " + courses[idx].id + " çš„ç›´æ¥å…ˆä¿®è¯¾ç¨‹å°šæœªå…¨éƒ¨å®‰æ’ã€‚");
             return;
         }
 
-        legalStart = max(earliest[idx] - 1, preStart); // earliestÎª1¿ªÊ¼²ãÊı£¬planÎª0¿ªÊ¼ÏÂ±ê
+        legalStart = max(earliest[idx] - 1, preStart); // earliestä¸º1å¼€å§‹å±‚æ•°ï¼Œplanä¸º0å¼€å§‹ä¸‹æ ‡
         if (legalStart > latest[idx]) {
-            printNoSolution("Ñ§ÆÚ°²ÅÅ³åÍ»", "¿Î³Ì " + courses[idx].id + " ÒÑ³¬¹ı×îÍí¿ÉÅÅÑ§ÆÚ¡£");
+            printNoSolution("å­¦æœŸå®‰æ’å†²çª", "è¯¾ç¨‹ " + courses[idx].id + " å·²è¶…è¿‡æœ€æ™šå¯æ’å­¦æœŸã€‚");
             return;
         }
         for (int s = legalStart; s <= latest[idx] && s < semesterCount; ++s) {
@@ -588,7 +589,7 @@ void Evengenerate() {
                 variance = planCreditVariance(temp, target);
                 afterCredit = temp[s].totalCredit;
 
-                // ÓÅÏÈÑ¡ÔñÕûÌåÆ«²î×îĞ¡µÄÎ»ÖÃ£»ÈôÏàÍ¬£¬ÔòÑ¡Ôñ·ÅÈëºó¸ºµ£½ÏÇáµÄÑ§ÆÚ£¬±ÜÃâ¼·ÔÚÇ°Ãæ
+                // ä¼˜å…ˆé€‰æ‹©æ•´ä½“åå·®æœ€å°çš„ä½ç½®ï¼›è‹¥ç›¸åŒï¼Œåˆ™é€‰æ‹©æ”¾å…¥åè´Ÿæ‹…è¾ƒè½»çš„å­¦æœŸï¼Œé¿å…æŒ¤åœ¨å‰é¢
                 if (bestSem == -1 || variance < bestVariance - 1e-8 ||
                     (variance <= bestVariance + 1e-8 && afterCredit < bestAfterCredit - 1e-8)) {
                     bestSem = s;
@@ -599,151 +600,174 @@ void Evengenerate() {
         }
 
         if (bestSem == -1) {
-            printNoSolution("Ñ§ÆÚ°²ÅÅ³åÍ»",
-                            "¿Î³Ì " + courses[idx].id + " ÎŞ·¨ÔÚµ±Ç°Ñ§ÆÚÊı¡¢Ñ§·ÖÉÏÏŞºÍ¿Î³ÌÊıÉÏÏŞÄÚ°²ÅÅ¡£");
+            printNoSolution("å­¦æœŸå®‰æ’å†²çª",
+                            "è¯¾ç¨‹ " + courses[idx].id + " æ— æ³•åœ¨å½“å‰å­¦æœŸæ•°ã€å­¦åˆ†ä¸Šé™å’Œè¯¾ç¨‹æ•°ä¸Šé™å†…å®‰æ’ã€‚");
             return;
         }
 
         putCourse(plan[bestSem], idx);
-        assigned[idx] = bestSem + 1; // assigned¼ÇÂ¼1¿ªÊ¼µÄÑ§ÆÚºÅ£¬±ãÓÚºó¼Ì¿Î³Ì¼ÆËãÏÂÒ»Ñ§ÆÚÏÂ±ê
+        assigned[idx] = bestSem + 1; // assignedè®°å½•1å¼€å§‹çš„å­¦æœŸå·ï¼Œä¾¿äºåç»§è¯¾ç¨‹è®¡ç®—ä¸‹ä¸€å­¦æœŸä¸‹æ ‡
     }
 
     lastPlan = plan;
-    lastPlanTitle = "°´Ñ§Ï°¸ºµ£¾¡Á¿¾ùÔÈÉú³ÉµÄ½ÌÑ§¼Æ»®";
+    lastPlanTitle = "æŒ‰å­¦ä¹ è´Ÿæ‹…å°½é‡å‡åŒ€ç”Ÿæˆçš„æ•™å­¦è®¡åˆ’";
     printPlan(lastPlan, lastPlanTitle);
 }
 
-/* ÅĞ¶ÏÄ³ÃÅ¿Î³ÌµÄËùÓĞÏÈĞŞ¿Î³ÌÊÇ·ñÒÑ¾­Íê³É */
-static bool allPrereqDone(int idx, const vector<int> &done) {
-    for (int i = 0; i < (int)courses[idx].pre.size(); ++i) {
-        int preIndex = findCourseIndex(courses[idx].pre[i]);
-        if (preIndex == -1 || !done[preIndex]) {
-            return false;
-        }
+/* æœç´¢ç»“æœä¸¥æ ¼åŒºåˆ†ç©·å°½æ— è§£ä¸é¢„ç®—è€—å°½ã€‚æ¯ä¸ªæœŸé™æœ€å¤šå±•å¼€20ä¸‡ä¸ªç»“ç‚¹ï¼Œ
+ * æ·±åº¦ä¸è¶…è¿‡è¯¾ç¨‹æ•°ï¼›æŒ‰æ‹“æ‰‘åºæšä¸¾æ¯é—¨è¯¾çš„æ‰€æœ‰åˆæ³•å­¦æœŸï¼Œæœç´¢å®Œæ•´æ—¶å¯è¯æ˜æ— è§£ã€‚
+ * æ­£å­¦åˆ†ä½¿å®¹é‡ä¸æœªæ¥ä½ç½®å‰ªææˆç«‹ã€‚ */
+enum SearchResult { PLAN_FOUND, PLAN_IMPOSSIBLE, PLAN_UNKNOWN };
+
+static SearchResult searchSchedule(const vector<int> &order,
+                                   const vector<int> &earliest,
+                                   const vector<int> &latest,
+                                   vector<int> &assigned,
+                                   vector<SemesterPlan> &plan,
+                                   int pos, int &budget) {
+    if (pos == (int)order.size()) return PLAN_FOUND;
+    if (budget <= 0) return PLAN_UNKNOWN;
+    --budget;
+    if (!hasFuturePosition(plan, assigned, order, earliest, latest, pos))
+        return PLAN_IMPOSSIBLE;
+    int idx = order[pos];
+    int start = max(earliest[idx] - 1, earliestSemesterByPrereq(idx, assigned));
+    for (int sem = start; sem <= latest[idx]; ++sem) {
+        if (!canPut(plan[sem], idx)) continue;
+        // ä¿å­˜åŸå€¼ï¼Œé¿å…æµ®ç‚¹åŠ å‡æ’¤é”€äº§ç”Ÿç´¯è®¡è¯¯å·®ã€‚
+        double oldCredit = plan[sem].totalCredit;
+        putCourse(plan[sem], idx);
+        assigned[idx] = sem + 1;
+        SearchResult result = searchSchedule(order, earliest, latest, assigned,
+                                             plan, pos + 1, budget);
+        if (result == PLAN_FOUND) return result;
+        assigned[idx] = 0;
+        plan[sem].items.pop_back();
+        plan[sem].totalCredit = oldCredit;
+        if (result == PLAN_UNKNOWN) return result;
     }
-    return true;
+    return PLAN_IMPOSSIBLE;
 }
 
-/* ×î¶ÌÊ±¼ä²ßÂÔÖĞµÄºòÑ¡¿Î³Ì±È½Ï¹æÔò */
-static bool betterCandidate(int a, int b, const vector<int> &earliest) {
-    if (b == -1) {
-        return true;
-    }
-    if (earliest[a] != earliest[b]) {
-        return earliest[a] > earliest[b];
-    }
-    if (courses[a].credit != courses[b].credit) {
-        return courses[a].credit > courses[b].credit;
-    }
-    return courses[a].id < courses[b].id;
-}
-
-/* °´¾¡¿ÉÄÜ¶ÌÊ±¼äÍê³ÉÑ§Ï°µÄ²ßÂÔÉú³É½ÌÑ§¼Æ»® */
-void Shortestgenerate() {
+/* ä¾æ¬¡å°è¯•é€’å¢çš„å®ŒæˆæœŸé™ã€‚è¾ƒå°æœŸé™æœªè¯æ— è§£æ—¶ï¼Œä¸å®£ç§°ç»“æœæœ€ä¼˜ã€‚ */
+void Shortestgenerate(int searchBudget = 200000) {
     Graph g;
-    vector<int> topoOrder, earliest, done(courses.size(), 0);
-    vector<SemesterPlan> plan(semesterCount);
-    int scheduled = 0;
-
-    if (!prepareTopo(g, topoOrder, earliest)) {
-        return;
-    }
-    for (int s = 0; s < semesterCount && scheduled < (int)courses.size(); ++s) {
-        vector<int> addedThisSemester(courses.size(), 0);
-        while ((int)plan[s].items.size() < courseCap) {
-            int best = -1;
-            for (int i = 0; i < (int)courses.size(); ++i) {
-                if (!done[i] && !addedThisSemester[i] && allPrereqDone(i, done) &&
-                    canPut(plan[s], i) && betterCandidate(i, best, earliest)) {
-                    best = i; // ÓÅÏÈ°²ÅÅ¸ü¹Ø¼ü¡¢Ñ§·Ö¸ü¸ßµÄ¿Î³Ì
-                }
-            }
-            if (best == -1) {
-                break;
-            }
-            putCourse(plan[s], best);
-            addedThisSemester[best] = 1;
-            ++scheduled;
-        }
-        for (int i = 0; i < (int)plan[s].items.size(); ++i) {
-            done[plan[s].items[i]] = 1; // ±¾Ñ§ÆÚ½áÊøºó¿Î³Ì²ÅÊÓÎªÍê³É
+    vector<int> topoOrder, earliest;
+    lastPlan.clear();
+    if (!prepareTopo(g, topoOrder, earliest)) return;
+    for (int i = 0; i < (int)courses.size(); ++i) {
+        if (!(courses[i].credit > 0) || !isfinite(courses[i].credit)) {
+            cout << "è¯¾ç¨‹å­¦åˆ†å¿…é¡»ä¸ºæœ‰é™æ­£æ•°ã€‚\n";
+            return;
         }
     }
-    if (scheduled < (int)courses.size()) {
-        printNoSolution("Ñ§ÆÚÊı²»×ã",
-                        "ÔÚ " + toStr(semesterCount) + " ¸öÑ§ÆÚÄÚÎŞ·¨°´×î¶ÌÊ±¼ä²ßÂÔÍê³ÉÈ«²¿¿Î³Ì¡£");
+    vector<int> latest = calculateLatestSemester(g, topoOrder);
+    // åœ¨ä¿æŒæ‹“æ‰‘åºçš„å‰æä¸‹ï¼Œä¼˜å…ˆå¤„ç†åç»­é“¾æœ€é•¿çš„è¯¾ç¨‹ã€‚
+    vector<int> order, indegree = g.indegree;
+    while (order.size() < courses.size()) {
+        int best = -1;
+        for (int i = 0; i < (int)courses.size(); ++i) {
+            if (indegree[i] != 0) continue;
+            if (best == -1 || latest[i] < latest[best] ||
+                (latest[i] == latest[best] && courses[i].credit > courses[best].credit))
+                best = i;
+        }
+        order.push_back(best);
+        indegree[best] = -1;
+        for (int j = 0; j < (int)g.adj[best].size(); ++j) --indegree[g.adj[best][j]];
+    }
+    int lower = max(*max_element(earliest.begin(), earliest.end()),
+                    ((int)courses.size() + courseCap - 1) / courseCap);
+    bool unresolved = false;
+    for (int horizon = lower; horizon <= semesterCount; ++horizon) {
+        if (totalCourseCredit() > horizon * creditCap + 1e-8) continue;
+        vector<int> limits = latest;
+        for (int i = 0; i < (int)limits.size(); ++i)
+            limits[i] -= semesterCount - horizon;
+        vector<int> assigned(courses.size(), 0);
+        vector<SemesterPlan> plan(semesterCount);
+        int budget = searchBudget;
+        SearchResult result = searchSchedule(order, earliest, limits, assigned, plan, 0, budget);
+        if (result == PLAN_UNKNOWN) unresolved = true;
+        if (result != PLAN_FOUND) continue;
+        lastPlan = plan;
+        lastPlanTitle = unresolved ? "å·²æ‰¾åˆ°å¯è¡Œæ•™å­¦è®¡åˆ’ï¼ˆå°šæœªè¯æ˜æœ€çŸ­ï¼‰" :
+                                    "æŒ‰å°½å¯èƒ½çŸ­æ—¶é—´ç”Ÿæˆçš„æ•™å­¦è®¡åˆ’";
+        printPlan(lastPlan, lastPlanTitle);
         return;
     }
-    lastPlan = plan;
-    lastPlanTitle = "°´¾¡¿ÉÄÜ¶ÌÊ±¼äÉú³ÉµÄ½ÌÑ§¼Æ»®";
-    printPlan(lastPlan, lastPlanTitle);
+    if (unresolved) {
+        cout << "\nã€æœç´¢æœªå®Œæˆã€‘è¾¾åˆ°æœç´¢é¢„ç®—ï¼Œå½“å‰ç­–ç•¥æœªæ‰¾åˆ°è§£ï¼Œä¸èƒ½æ®æ­¤åˆ¤æ–­æ— è§£ã€‚\n";
+    } else {
+        printNoSolution("å­¦æœŸå®‰æ’ä¸å¯è¡Œ", "å·²é€šè¿‡çº¦æŸæ£€æŸ¥æˆ–å®Œæ•´æœç´¢è¯æ˜æŒ‡å®šæœŸé™å†…ä¸å­˜åœ¨åˆæ³•æ•™å­¦è®¡åˆ’ã€‚");
+    }
 }
 
-/* ½«×î½üÒ»´ÎÉú³ÉµÄ½ÌÑ§¼Æ»®Êä³öµ½ÎÄ±¾ÎÄ¼ş */
+/* å°†æœ€è¿‘ä¸€æ¬¡ç”Ÿæˆçš„æ•™å­¦è®¡åˆ’è¾“å‡ºåˆ°æ–‡æœ¬æ–‡ä»¶ */
 void OutputScheduletofile() {
     string filename;
     if (lastPlan.empty()) {
-        cout << "µ±Ç°Ã»ÓĞ¿ÉÊä³öµÄ½ÌÑ§¼Æ»®£¬ÇëÏÈÉú³É½ÌÑ§¼Æ»®¡£\n";
+        cout << "å½“å‰æ²¡æœ‰å¯è¾“å‡ºçš„æ•™å­¦è®¡åˆ’ï¼Œè¯·å…ˆç”Ÿæˆæ•™å­¦è®¡åˆ’ã€‚\n";
         return;
     }
-    cout << "ÇëÊäÈëÊä³öÎÄ¼şÃû£º";
+    cout << "è¯·è¾“å…¥è¾“å‡ºæ–‡ä»¶åï¼š";
     cin >> filename;
 
     ofstream fout(filename.c_str());
     if (!fout) {
-        cout << "ÎÄ¼ş´´½¨Ê§°Ü¡£\n";
+        cout << "æ–‡ä»¶åˆ›å»ºå¤±è´¥ã€‚\n";
         return;
     }
     fout << lastPlanTitle << "\n";
-    fout << "Ñ§ÆÚ×ÜÊı£º" << lastPlan.size()
-         << "£¬Ñ§·ÖÉÏÏŞ£º" << creditCap
-         << "£¬¿Î³ÌÊıÉÏÏŞ£º" << courseCap << "\n\n";
+    fout << "å­¦æœŸæ€»æ•°ï¼š" << lastPlan.size()
+         << "ï¼Œå­¦åˆ†ä¸Šé™ï¼š" << creditCap
+         << "ï¼Œè¯¾ç¨‹æ•°ä¸Šé™ï¼š" << courseCap << "\n\n";
     for (int i = 0; i < (int)lastPlan.size(); ++i) {
-        fout << "µÚ " << i + 1 << " Ñ§ÆÚ£º¿Î³ÌÊı " << lastPlan[i].items.size()
-             << "£¬Ñ§·Ö " << lastPlan[i].totalCredit << "\n";
+        fout << "ç¬¬ " << i + 1 << " å­¦æœŸï¼šè¯¾ç¨‹æ•° " << lastPlan[i].items.size()
+             << "ï¼Œå­¦åˆ† " << lastPlan[i].totalCredit << "\n";
         if (lastPlan[i].items.empty()) {
-            fout << "  £¨ÎŞ£©\n";
+            fout << "  ï¼ˆæ— ï¼‰\n";
         }
         for (int j = 0; j < (int)lastPlan[i].items.size(); ++j) {
             int idx = lastPlan[i].items[j];
             fout << "  " << courses[idx].id << "  "
                  << courses[idx].name << "  "
-                 << courses[idx].credit << " Ñ§·Ö\n";
+                 << courses[idx].credit << " å­¦åˆ†\n";
         }
     }
-    cout << "½ÌÑ§¼Æ»®ÒÑÊä³öµ½ÎÄ¼ş " << filename << "¡£\n";
+    cout << "æ•™å­¦è®¡åˆ’å·²è¾“å‡ºåˆ°æ–‡ä»¶ " << filename << "ã€‚\n";
 }
 
-/* ´òÓ¡ÏµÍ³Ö÷²Ëµ¥ */
+/* æ‰“å°ç³»ç»Ÿä¸»èœå• */
 static void printMenu() {
     cout << "\n----------------------------------------\n";
-    cout << "½ÌÑ§¼Æ»®±àÖÆÏµÍ³\n";
-    cout << "µ±Ç°ÉèÖÃ£º¿Î³Ì" << courses.size()
-         << "ÃÅ£¬Ñ§ÆÚ" << semesterCount
-         << "¸ö£¬Ñ§·ÖÉÏÏŞ" << creditCap
-         << "£¬¿Î³ÌÊıÉÏÏŞ" << courseCap << "\n";
+    cout << "æ•™å­¦è®¡åˆ’ç¼–åˆ¶ç³»ç»Ÿ\n";
+    cout << "å½“å‰è®¾ç½®ï¼šè¯¾ç¨‹" << courses.size()
+         << "é—¨ï¼Œå­¦æœŸ" << semesterCount
+         << "ä¸ªï¼Œå­¦åˆ†ä¸Šé™" << creditCap
+         << "ï¼Œè¯¾ç¨‹æ•°ä¸Šé™" << courseCap << "\n";
     cout << "----------------------------------------\n";
-    cout << "1. ¶ÁÈ¡¿Î³Ì½øĞŞÄ¿Â¼ÎÄ¼ş\n";
-    cout << "2. ÊÖ¶¯ÊäÈë¿Î³ÌĞÅÏ¢\n";
-    cout << "3. ÏÔÊ¾ËùÓĞ¿Î³Ì¼°ÆäÏÈĞŞ¹ØÏµ\n";
-    cout << "4. ±à¼­¿Î³ÌĞÅÏ¢£¨Ôö/É¾/¸Ä£©\n";
-    cout << "5. ÉèÖÃÑ§ÆÚ²ÎÊı£¨Ä¬ÈÏ£º8Ñ§ÆÚ¡¢15Ñ§·Ö¡¢5ÃÅ¿Î£©\n";
-    cout << "6. °´¾ùÔÈ·Ö²¼²ßÂÔÉú³É½ÌÑ§¼Æ»®\n";
-    cout << "7. °´×î¶ÌÊ±¼ä²ßÂÔÉú³É½ÌÑ§¼Æ»®\n";
-    cout << "8. Êä³ö½ÌÑ§¼Æ»®µ½ÎÄ¼ş\n";
-    cout << "0. ÍË³öÏµÍ³\n";
+    cout << "1. è¯»å–è¯¾ç¨‹è¿›ä¿®ç›®å½•æ–‡ä»¶\n";
+    cout << "2. æ‰‹åŠ¨è¾“å…¥è¯¾ç¨‹ä¿¡æ¯\n";
+    cout << "3. æ˜¾ç¤ºæ‰€æœ‰è¯¾ç¨‹åŠå…¶å…ˆä¿®å…³ç³»\n";
+    cout << "4. ç¼–è¾‘è¯¾ç¨‹ä¿¡æ¯ï¼ˆå¢/åˆ /æ”¹ï¼‰\n";
+    cout << "5. è®¾ç½®å­¦æœŸå‚æ•°ï¼ˆé»˜è®¤ï¼š8å­¦æœŸã€15å­¦åˆ†ã€5é—¨è¯¾ï¼‰\n";
+    cout << "6. æŒ‰å‡åŒ€åˆ†å¸ƒç­–ç•¥ç”Ÿæˆæ•™å­¦è®¡åˆ’\n";
+    cout << "7. æŒ‰æœ€çŸ­æ—¶é—´ç­–ç•¥ç”Ÿæˆæ•™å­¦è®¡åˆ’\n";
+    cout << "8. è¾“å‡ºæ•™å­¦è®¡åˆ’åˆ°æ–‡ä»¶\n";
+    cout << "0. é€€å‡ºç³»ç»Ÿ\n";
 }
 
-/* ³ÌĞòÈë¿Ú£ºÑ­»·½ÓÊÕÓÃ»§²Ëµ¥Ñ¡Ôñ²¢µ÷ÓÃ¶ÔÓ¦¹¦ÄÜ */
+/* ç¨‹åºå…¥å£ï¼šå¾ªç¯æ¥æ”¶ç”¨æˆ·èœå•é€‰æ‹©å¹¶è°ƒç”¨å¯¹åº”åŠŸèƒ½ */
 int main() {
     int syb;
     do {
         printMenu();
-        cout << "ÇëÊäÈë²Ù×÷±àºÅ£º";
+        cout << "è¯·è¾“å…¥æ“ä½œç¼–å·ï¼š";
         if (!(cin >> syb)) {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << "ÊäÈëÎŞĞ§£¬ÇëÖØĞÂÊäÈë¡£\n";
+            cout << "è¾“å…¥æ— æ•ˆï¼Œè¯·é‡æ–°è¾“å…¥ã€‚\n";
             continue;
         }
         switch (syb) {
@@ -755,8 +779,8 @@ int main() {
             case 6: Evengenerate(); break;
             case 7: Shortestgenerate(); break;
             case 8: OutputScheduletofile(); break;
-            case 0: cout << "ÏµÍ³ÒÑÍË³ö¡£\n"; break;
-            default: cout << "Î´Öª²Ù×÷£¬ÇëÊäÈë0~8Ö®¼äµÄÊı×Ö¡£\n"; break;
+            case 0: cout << "ç³»ç»Ÿå·²é€€å‡ºã€‚\n"; break;
+            default: cout << "æœªçŸ¥æ“ä½œï¼Œè¯·è¾“å…¥0~8ä¹‹é—´çš„æ•°å­—ã€‚\n"; break;
         }
     } while (syb != 0);
 
