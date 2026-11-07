@@ -84,13 +84,14 @@ void josephOut(Node *head, int n, int outOrder[])
             currentNumber = 1;
 
             /* 删除当前结点，并让p指向下一位继续报数。 */
+            if (count == n) {
+                free(p);
+                break;
+            }
+
             q->next = p->next;
             free(p);
             p = q->next;
-
-            if (count == n) {
-                break;
-            }
         } else {
             /* 未达到密码时，报数加1，指针顺序后移。 */
             currentNumber++;

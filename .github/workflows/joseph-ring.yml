@@ -1,0 +1,42 @@
+name: Joseph ring regression
+
+on:
+  push:
+    paths:
+      - 'DataStructure-Project/实验1-约瑟夫环.c'
+      - 'tests/test_joseph_ring.py'
+      - '实验1-约瑟夫环.c'
+      - '.github/workflows/joseph-ring.yml'
+  pull_request:
+    paths:
+      - 'DataStructure-Project/实验1-约瑟夫环.c'
+      - 'tests/test_joseph_ring.py'
+      - '实验1-约瑟夫环.c'
+      - '.github/workflows/joseph-ring.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    name: Joseph ring (${{ matrix.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [normal, sanitize]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Run Joseph ring regression tests
+        if: matrix.mode == 'normal'
+        run: python3 tests/test_joseph_ring.py -v
+      - name: Run Joseph ring tests with ASan and UBSan
+        if: matrix.mode == 'sanitize'
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: python3 tests/test_joseph_ring.py --sanitize -v
